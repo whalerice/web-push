@@ -76,25 +76,33 @@ function App() {
 
   useEffect(() => {
     get();
+    getNoty();
   }, []);
 
-  // async function getNoty() {
-  //   await supabase
-  //     .channel('*')
-  //     .on('postgres_changes', { event: '*', schema: '*' }, async (payload) => {
-  //       if (payload.table === 'noty') {
-  //         // const data: any = payload.new;
-  //         if (payload.new) {
-  //           const text: any = payload.new.text;
-  //           console.log(payload.new);
-  //           const registration = await navigator.serviceWorker.ready;
-  //           registration.showNotification('웹푸쉬', { body: text });
-  //           // webPush(data.text);
-  //         }
-  //       }
-  //     })
-  //     .subscribe();
-  // }
+  async function getNoty() {
+    await supabase
+      .channel('*')
+      .on('postgres_changes', { event: '*', schema: '*' }, async (payload) => {
+        if (payload.table === 'noty') {
+          // const data: any = payload.new;
+          if (payload.new) {
+            const text: any = payload.new.text;
+            console.log(payload.new);
+            onPush(text);
+
+            // webPush(data.text);
+          }
+        }
+      })
+      .subscribe();
+  }
+
+  const onPush = async (text: any) => {
+    console.log(text);
+
+    const registration = await navigator.serviceWorker.ready;
+    registration.showNotification('웹푸쉬', { body: text });
+  };
 
   const onSubscription = () => {
     setIsSubscription(!isSubscription);
