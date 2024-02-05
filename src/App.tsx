@@ -22,16 +22,16 @@ function App() {
         // 이미 구독이 되어있다면 해지하기
         // TODO: DB에 구독 해지 정보 보내기
         subscription.unsubscribe();
-        subDel();
+        // subDel();
       } else {
         // 구독이 되어있지 않으면 구독하기
-        const subscription = await registration.pushManager.subscribe({
+        await registration.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: vapidKey,
         });
         // TODO: DB에 구독 정보 보내기
         // console.log('subscription => ', subscription.toJSON());
-        subInsert(subscription.toJSON());
+        // subInsert(subscription.toJSON());
         // p256dh
       }
     } catch (error: any) {
@@ -39,30 +39,30 @@ function App() {
     }
   };
 
-  const subInsert = async (value: any) => {
-    console.log(value);
-    const sendData = {
-      auth: value.keys?.auth,
-      endpoint: value.endpoint,
-      p256dh: value.keys?.p256dh,
-    };
+  // const subInsert = async (value: any) => {
+  //   console.log(value);
+  //   const sendData = {
+  //     auth: value.keys?.auth,
+  //     endpoint: value.endpoint,
+  //     p256dh: value.keys?.p256dh,
+  //   };
 
-    const { error } = await supabase.from('sub').insert([sendData]).select();
+  //   const { error } = await supabase.from('sub').insert([sendData]).select();
 
-    localStorage.setItem('auth', value.keys?.auth);
-    if (error) {
-      console.error(error);
-    }
-  };
+  //   localStorage.setItem('auth', value.keys?.auth);
+  //   if (error) {
+  //     console.error(error);
+  //   }
+  // };
 
-  const subDel = async () => {
-    const authValue = localStorage.getItem('auth');
-    const { error } = await supabase.from('sub').delete().eq('auth', authValue);
+  // const subDel = async () => {
+  //   const authValue = localStorage.getItem('auth');
+  //   const { error } = await supabase.from('sub').delete().eq('auth', authValue);
 
-    if (error) {
-      console.error(error);
-    }
-  };
+  //   if (error) {
+  //     console.error(error);
+  //   }
+  // };
 
   const get = async () => {
     const registration = await navigator.serviceWorker.ready;
@@ -84,11 +84,8 @@ function App() {
       .channel('*')
       .on('postgres_changes', { event: '*', schema: '*' }, async (payload) => {
         if (payload.table === 'noty') {
-          // const data: any = payload.new;
           if (payload.new) {
             onPush(payload.new);
-
-            // webPush(data.text);
           }
         }
       })
@@ -97,7 +94,6 @@ function App() {
 
   const onPush = async (data: any) => {
     const text = data.text;
-    console.log(data);
 
     const registration = await navigator.serviceWorker.ready;
     registration.showNotification('웹푸쉬', { body: text });
