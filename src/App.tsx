@@ -64,7 +64,7 @@ function App() {
       .channel('*')
       .on('postgres_changes', { event: '*', schema: '*' }, async (payload) => {
         if (payload.table === 'noty') {
-          const data: any = payload.new;
+          // const data: any = payload.new;
           if (payload.new) {
             setPayload(payload.new);
             console.log(payload);
