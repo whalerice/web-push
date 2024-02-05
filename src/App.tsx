@@ -86,9 +86,7 @@ function App() {
         if (payload.table === 'noty') {
           // const data: any = payload.new;
           if (payload.new) {
-            const text: any = payload.new.text;
-            console.log(payload.new);
-            onPush(text);
+            onPush(payload.new);
 
             // webPush(data.text);
           }
@@ -97,8 +95,9 @@ function App() {
       .subscribe();
   }
 
-  const onPush = async (text: any) => {
-    console.log(text);
+  const onPush = async (data: any) => {
+    const text = data.text;
+    console.log(data);
 
     const registration = await navigator.serviceWorker.ready;
     registration.showNotification('웹푸쉬', { body: text });
