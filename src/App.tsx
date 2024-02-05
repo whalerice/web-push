@@ -3,96 +3,110 @@ import { supabase } from '@/lib/supabase';
 import './App.css';
 
 function App() {
-  const [tokens, setTokens] = useState<any>({
-    endpoint: '',
-    keys: { auth: '', p256dh: '' },
-  });
+  // const [tokens, setTokens] = useState<any>({
+  //   endpoint: '',
+  //   keys: { auth: '', p256dh: '' },
+  // });
 
-  const [payload, setPayload] = useState<any>({ text: '' });
+  const [isSubscription, setIsSubscription] = useState<boolean>(false);
 
   const vapidKey =
-    'BCjQjaIt1dH87Qd9iOr42bk-1Eu_s-RGMI4bsCvYGW4qS2m49ZkOb-p9psaYH3ZXYNCNc6bJkC_xQB2jF6gNZxs';
+    'BJlLPLCWtGen5AVvjK9BR9Ma5YIYI0P7Y_KXzWplZmid1XGDGXwkk_DODaA1kfSgIwk-i25qzVrpGNiBBRNo8Sc';
 
   const requestPermission = async () => {
     const registration = await navigator.serviceWorker.ready;
-    const subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: vapidKey,
-    });
-    // TODO: DB에 구독 정보 보내기
-    console.log('subscription => ', subscription.toJSON());
-    const data = subscription.toJSON();
-    if (data) {
-      setTokens({ endpoint: data.endpoint, keys: data.keys });
-    }
 
-    // subscriptionJson = subscription.toJSON();
-    // const subscription = await registration.pushManager.getSubscription();
-    //   if (subscription) {
-    //     // 이미 구독이 되어있다면 해지하기
-    //     // TODO: DB에 구독 해지 정보 보내기
-    //     subscription.unsubscribe();
-    //   } else {
-    //     // 구독이 되어있지 않으면 구독하기
-    //     const subscription = await registration.pushManager.subscribe({
-    //       userVisibleOnly: true,
-    //       applicationServerKey:
-    //         'BCjQjaIt1dH87Qd9iOr42bk-1Eu_s-RGMI4bsCvYGW4qS2m49ZkOb-p9psaYH3ZXYNCNc6bJkC_xQB2jF6gNZxs',
-    //     });
-    //     // TODO: DB에 구독 정보 보내기
-    //     console.log('subscription => ', subscription.toJSON());
-    //   }
-    // } catch (e: any) {
-    //   console.error(e.message);
-    // }
+    try {
+      const subscription = await registration.pushManager.getSubscription();
+      if (subscription) {
+        // 이미 구독이 되어있다면 해지하기
+        // TODO: DB에 구독 해지 정보 보내기
+        subscription.unsubscribe();
+        subDel();
+      } else {
+        // 구독이 되어있지 않으면 구독하기
+        const subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: vapidKey,
+        });
+        // TODO: DB에 구독 정보 보내기
+        // console.log('subscription => ', subscription.toJSON());
+        subInsert(subscription.toJSON());
+        // p256dh
+      }
+    } catch (error: any) {
+      console.error(error.message);
+    }
+  };
+
+  const subInsert = async (value: any) => {
+    console.log(value);
+    const sendData = {
+      auth: value.keys?.auth,
+      endpoint: value.endpoint,
+      p256dh: value.keys?.p256dh,
+    };
+
+    const { error } = await supabase.from('sub').insert([sendData]).select();
+
+    localStorage.setItem('auth', value.keys?.auth);
+    if (error) {
+      console.error(error);
+    }
+  };
+
+  const subDel = async () => {
+    const authValue = localStorage.getItem('auth');
+    const { error } = await supabase.from('sub').delete().eq('auth', authValue);
+
+    if (error) {
+      console.error(error);
+    }
+  };
+
+  const get = async () => {
+    const registration = await navigator.serviceWorker.ready;
+    const subscription = await registration.pushManager.getSubscription();
+    if (subscription) {
+      setIsSubscription(true);
+    } else {
+      setIsSubscription(false);
+    }
   };
 
   useEffect(() => {
-    getNoty();
-
-    requestPermission();
+    get();
   }, []);
 
-  const webPush = async (text: any) => {
-    const registration = await navigator.serviceWorker.ready;
-    console.log(registration);
-    registration.showNotification('웹푸쉬', { body: text });
+  // async function getNoty() {
+  //   await supabase
+  //     .channel('*')
+  //     .on('postgres_changes', { event: '*', schema: '*' }, async (payload) => {
+  //       if (payload.table === 'noty') {
+  //         // const data: any = payload.new;
+  //         if (payload.new) {
+  //           const text: any = payload.new.text;
+  //           console.log(payload.new);
+  //           const registration = await navigator.serviceWorker.ready;
+  //           registration.showNotification('웹푸쉬', { body: text });
+  //           // webPush(data.text);
+  //         }
+  //       }
+  //     })
+  //     .subscribe();
+  // }
+
+  const onSubscription = () => {
+    setIsSubscription(!isSubscription);
+    requestPermission();
   };
-
-  async function getNoty() {
-    await supabase
-      .channel('*')
-      .on('postgres_changes', { event: '*', schema: '*' }, async (payload) => {
-        if (payload.table === 'noty') {
-          // const data: any = payload.new;
-          if (payload.new) {
-            setPayload(payload.new);
-            console.log(payload);
-            // webPush(data.text);
-          }
-        }
-      })
-      .subscribe();
-  }
-
-  async function send() {
-    console.log(tokens);
-    webPush(payload.text);
-    // await supabase
-    //   .from('noty')
-    //   .insert([{ text: '테스트', nickname: 'data', user_uid: 'data' }])
-    //   .select();
-  }
 
   return (
     <>
-      <p>{payload.text}</p>
-      <input
-        type="text"
-        value={payload.text}
-        onChange={(e: any) => setPayload({ text: e.target.value })}
-      />
-      <button onClick={send}>알림 테스트</button>
+      <div>{isSubscription ? '구독중' : '미구독'}</div>
+      <button onClick={onSubscription}>
+        {isSubscription ? '구독해지' : '구독하기'}
+      </button>
     </>
   );
 }
